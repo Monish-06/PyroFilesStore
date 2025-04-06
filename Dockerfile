@@ -4,33 +4,36 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
-RUN apt-get update
-RUN echo y | apt-get install locales
-RUN echo y | apt install build-essential
-RUN apt -qq install -y --no-install-recommends \
+# System dependencies
+RUN apt-get update && apt-get install -y \
+    locales \
+    build-essential \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-lxml \
     curl \
     git \
-    gnupg2 \
-    wget
+    wget \
+    libssl-dev \
+    libffi-dev \
+    libpq-dev \
+    pv \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN set -ex; \
-    apt-get update \
-    && apt-get install -y --no-install-recommends \
-        busybox \
-	git \
-	python3 \
-	python3-dev \
-	python3-pip \
-	python3-lxml \
-	pv \
-	&& apt-get autoclean \
-        && apt-get autoremove \
-        && rm -rf /var/lib/apt/lists/*
+# Upgrade pip and install Python requirements
+RUN pip3 install --upgrade pip setuptools wheel
 
-RUN pip3 install setuptools wheel yarl multidict
+# Install these first to avoid weird pip failures
+RUN pip3 install yarl multidict
+
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
-RUN dpkg-reconfigure locales
+
+# Copy your bot code
 COPY . /app
 
+# Run the bot
 CMD ["python3", "bot.py"]
